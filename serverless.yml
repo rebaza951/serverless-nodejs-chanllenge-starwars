@@ -1,0 +1,48 @@
+service: nodejs-crud
+name: nodejs-crud
+
+plugins:
+  - serverless-bundle
+  - serverless-pseudo-parameters
+  - serverless-offline
+  - serverless-dotenv-plugin
+
+package:
+  individually: true
+
+provider:
+  name: aws
+  runtime: nodejs12.x
+  memorySize: 256
+  stage: ${opt:stage, 'development'}
+  region: us-east-1
+  environment:
+    PEOPLE_TABLE_NAME: ${self:custom.PeopleTable.name}
+  iamRoleStatements:
+    - ${file(iam/PeopleTableIAM.yml):PeopleTableIAM}
+
+resources:
+  Resources:
+    PeopleTable: ${file(resources/PeopleTable.yml):PeopleTable}
+
+custom:
+  PeopleTable:
+    name: !Ref PeopleTable
+    arn: !GetAtt PeopleTable.Arn
+  bundle:
+    linting: false
+
+functions:
+  getPeople:
+    handler: src/handlers/getPeople.handler
+    events:
+      - http:
+          path: people
+          method: get
+
+  createPeople:
+    handler: src/handlers/createPeople.handler
+    events:
+      - http:
+          path: people
+          method: post
